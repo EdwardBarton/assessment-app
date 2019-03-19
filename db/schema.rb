@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2019_03_11_140727) do
+ActiveRecord::Schema.define(version: 2019_03_19_193101) do
 
   create_table "conferences", force: :cascade do |t|
     t.string "name"
@@ -28,6 +28,7 @@ ActiveRecord::Schema.define(version: 2019_03_11_140727) do
     t.integer "team_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.boolean "starter", default: false
     t.index ["team_id"], name: "index_players_on_team_id"
   end
 
