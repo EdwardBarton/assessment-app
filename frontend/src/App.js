@@ -134,7 +134,7 @@ class App extends Component {
                   color="blue"
                   onClick={() => this.fetchTeamPlayers(team)}
                 >
-                  Players
+                  {team.showPlayers ? 'Hide' : 'Show'} Players
                 </Button>
                 <Box p={3}>
                   <FormLabel htmlFor="win-input">Wins</FormLabel>
@@ -160,16 +160,35 @@ class App extends Component {
                     color="blue"
                     onClick={() => this.handleClick(team.id)}
                   >
-                    Update
+                    Update W/L
                   </Button>
                 </Box>
               </Heading>
             </Card.Header>
             {team.showPlayers ? (
               <Card.Content>
-                <ListItem>Player's</ListItem>
-                <ListItem>Go</ListItem>
-                <ListItem>Here</ListItem>
+                <Flex className="players" justifyContent="space-around">
+                  {team.players.map(p => (
+                    <ListItem key={p.id}>
+                      <ListItem.Content>
+                        <ListItem.Heading style={{ textAlign: 'center' }}>
+                          {p.name}
+                        </ListItem.Heading>
+                        <Box>
+                          <ListItem.Info>
+                            Starter? {p.starter ? 'Yes' : 'No'}
+                          </ListItem.Info>
+                          <ListItem.Info>
+                            Jersey #: {p.jersey_number}
+                          </ListItem.Info>
+                          <ListItem.Info>Height: {p.height}</ListItem.Info>
+                          <ListItem.Info>Weight: {p.weight}</ListItem.Info>
+                          <ListItem.Info>Position: {p.position}</ListItem.Info>
+                        </Box>
+                      </ListItem.Content>
+                    </ListItem>
+                  ))}
+                </Flex>
               </Card.Content>
             ) : null}
           </Card>
