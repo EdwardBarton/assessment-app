@@ -66,8 +66,8 @@ class App extends Component {
     }
   }
 
-  // Update database upon clicking "Update" button
-  async handleClick(teamID) {
+  // Update database upon clicking "Update W/L" button
+  async updateTeamWinsLosses(teamID) {
     const { teams } = this.state
     const putApiRoute = `${API}/conferences/1/teams/${teamID}`
     const teamToUpdate = { ...teams[teamID - 1] }
@@ -89,20 +89,43 @@ class App extends Component {
     const { teams } = this.state
 
     // Store new winning/losing value
-    const newValue = Number(e.target.value)
+    const newWinLoss = Number(e.target.value)
 
     // Ensure new win/loss value is a number >= 0
-    if (newValue >= 0) {
-      // Copy teams app state immutably and update wins/losses
+    if (newWinLoss >= 0) {
+      // Copy teams app state immutably and update team's wins/losses
       const teamsCopy = [...teams]
 
       if (e.target.classList.contains('win-input')) {
-        teamsCopy[teamID - 1].wins = newValue
+        teamsCopy[teamID - 1].wins = newWinLoss
       } else {
-        teamsCopy[teamID - 1].losses = newValue
+        teamsCopy[teamID - 1].losses = newWinLoss
       }
 
       // Update app state
+      this.setState({ teams: teamsCopy })
+    } else {
+      return
+    }
+  }
+
+  // Update a player's jersey number in-line
+  async updateJerseyNumber(e, player) {
+    const { teams } = this.state
+    const newJerseyNumber = Number(e.target.value)
+    const putApiRoute = `${API}/conferences/1/teams/${player.team_id}/players/${
+      player.id
+    }`
+
+    // Ensure new jersey number >= 0
+    if (newJerseyNumber >= 0) {
+      const response = await axios.put(putApiRoute, {
+        jersey_number: newJerseyNumber,
+      })
+
+      // Update team player app state immutably w/ response from successful PUT request
+      const teamsCopy = [...teams]
+      teamsCopy[player.team_id - 1].players[player.id - 1] = response.data
       this.setState({ teams: teamsCopy })
     } else {
       return
@@ -158,7 +181,7 @@ class App extends Component {
                   <Button
                     size="small"
                     color="blue"
-                    onClick={() => this.handleClick(team.id)}
+                    onClick={() => this.updateTeamWinsLosses(team.id)}
                   >
                     Update W/L
                   </Button>
@@ -179,7 +202,14 @@ class App extends Component {
                             Starter? {p.starter ? 'Yes' : 'No'}
                           </ListItem.Info>
                           <ListItem.Info>
-                            Jersey #: {p.jersey_number}
+                            Jersey #:{' '}
+                            <TextInput
+                              defaultValue={p.jersey_number}
+                              min="0"
+                              className="loss-input"
+                              type="number"
+                              onChange={e => this.updateJerseyNumber(e, p)}
+                            />
                           </ListItem.Info>
                           <ListItem.Info>Height: {p.height}</ListItem.Info>
                           <ListItem.Info>Weight: {p.weight}</ListItem.Info>

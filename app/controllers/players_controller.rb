@@ -32,6 +32,6 @@ class PlayersController < ApplicationController
 
   # Only allow the updating of a player's jersey number
   def player_params
-    params.require(:player).permit(:jersey_number)
+    params.require(:player).permit(:jersey_number, :starter)
   end
 end
