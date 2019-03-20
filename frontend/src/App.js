@@ -23,16 +23,22 @@ class App extends Component {
     }
   }
 
-  fetchData() {
-    axios.get(API, { mode: 'no-cors' }).then(response => {
-      const data = response.data
-      this.setState({ conference: data.conference, teams: data.teams })
+  async fetchData() {
+    const response = await axios.get(API, { mode: 'no-cors' })
+    const data = response.data
+    const updatedTeams = data.teams.map(t => {
+      t.editRecord = false
+      return t
     })
+
+    this.setState({ conference: data.conference, teams: updatedTeams })
   }
 
   componentDidMount() {
     this.fetchData()
   }
+
+  // *************************** UPDATE TEAM FUNCTIONS *************************** //
 
   // Fetch team players and toggle visibility when "Players" button is clicked in Card.Header
   async fetchTeamPlayers(team) {
@@ -42,15 +48,19 @@ class App extends Component {
     if (!team.players) {
       const getPlayersApiRoute = `${API}/conferences/1/teams/${team.id}/players`
       const response = await axios.get(getPlayersApiRoute, { mode: 'no-cors' })
+      const playersData = response.data
 
       // Update team with players response
       const updatedTeam = {
         ...teams[team.id - 1],
-        players: response.data,
+        players: playersData.map(p => {
+          p.editJersey = false
+          return p
+        }),
         showPlayers: true,
       }
 
-      // Update app state teams array w/ updated team
+      // Update app state teams array w/ updated team immutably
       const teamsCopy = [...teams]
       teamsCopy[team.id - 1] = updatedTeam
       this.setState({ teams: teamsCopy })
@@ -81,6 +91,13 @@ class App extends Component {
     // Copy teams from app state immutably and update w/ response data from successful PUT request
     const teamsCopy = [...teams]
     teamsCopy[teamID - 1] = response.data
+
+    // Maintain app state that team response doesn't return
+    teamsCopy[teamID - 1].players = this.state.teams[teamID - 1].players
+    teamsCopy[teamID - 1].showPlayers = this.state.teams[teamID - 1].showPlayers
+
+    // Hide edit record form and update state
+    teamsCopy[teamID - 1].editRecord = false
     this.setState({ teams: teamsCopy })
   }
 
@@ -109,6 +126,9 @@ class App extends Component {
     }
   }
 
+  // *************************** PLAYER UPDATE FUNCTIONS *************************** //
+  // TODO: Combine update functions to accept a player and which prop is being updated w/ new value
+
   // Update a player's jersey number in-line
   async updateJerseyNumber(e, player) {
     const { teams } = this.state
@@ -125,12 +145,89 @@ class App extends Component {
 
       // Update team player app state immutably w/ response from successful PUT request
       const teamsCopy = [...teams]
-      teamsCopy[player.team_id - 1].players[player.id - 1] = response.data
+
+      // Update team players
+      teamsCopy[player.team_id - 1].players.map((p, index, arr) => {
+        if (p.id === player.id) {
+          // Overwrite player w/ player from server response
+          arr[index] = response.data
+        }
+        return arr
+      })
+
+      // Keep edit jersey input open until "Enter"
+      teamsCopy[player.team_id - 1].players.find(
+        p => p.id === player.id,
+      ).editJersey = true
+
       this.setState({ teams: teamsCopy })
     } else {
       return
     }
   }
+
+  // Update a player's starting status in-line
+  async updateStartingPlayer(e, player) {
+    const { teams } = this.state
+    const newStarterValue = e.target.checked
+    const putApiRoute = `${API}/conferences/1/teams/${player.team_id}/players/${
+      player.id
+    }`
+    const response = await axios.put(putApiRoute, {
+      starter: newStarterValue,
+    })
+
+    // Copy state teams immutably
+    const teamsCopy = [...teams]
+
+    // Update team players
+    teamsCopy[player.team_id - 1].players.map((p, index, arr) => {
+      if (p.id === player.id) {
+        // Overwrite player w/ player from server response
+        arr[index] = response.data
+      }
+      return arr
+    })
+
+    this.setState({ teams: teamsCopy })
+  }
+
+  // *************************** TOGGLE TEXT INPUTS *************************** //
+
+  // Shows edit record form for a given team
+  editRecord(team) {
+    const teamsCopy = [...this.state.teams]
+    teamsCopy[team.id - 1].editRecord = true
+    this.setState({ teams: teamsCopy })
+  }
+
+  // Shows edit jersey input for a given player
+  editJersey(player) {
+    const teamsCopy = [...this.state.teams]
+
+    teamsCopy[player.team_id - 1].players.find(
+      p => p.id === player.id,
+    ).editJersey = true
+
+    this.setState({ teams: teamsCopy })
+  }
+
+  // Close edit jersey input for a given player on "Enter"
+  closeEditJersey(e, player) {
+    if (e.key === 'Enter') {
+      const teamsCopy = [...this.state.teams]
+
+      teamsCopy[player.team_id - 1].players.find(
+        p => p.id === player.id,
+      ).editJersey = false
+
+      this.setState({ teams: teamsCopy })
+    } else {
+      return
+    }
+  }
+
+  // *************************** RENDER *************************** //
 
   render() {
     const { conference } = this.state
@@ -142,8 +239,11 @@ class App extends Component {
 
     return (
       <Box className="App" mx={12} my={5}>
-        <Heading>
+        <Heading mb={5}>
           {conference.short_name} ({conference.name})
+          <Button ml={5} color="blue">
+            Add Team
+          </Button>
         </Heading>
 
         {teams.map(team => (
@@ -159,33 +259,44 @@ class App extends Component {
                 >
                   {team.showPlayers ? 'Hide' : 'Show'} Players
                 </Button>
-                <Box p={3}>
-                  <FormLabel htmlFor="win-input">Wins</FormLabel>
-                  <TextInput
-                    defaultValue={team.wins}
-                    mb={2}
-                    min="0"
-                    className="win-input"
-                    type="number"
-                    onChange={e => this.handleChange(e, team.id)}
-                  />
-                  <FormLabel htmlFor="loss-input">Losses</FormLabel>
-                  <TextInput
-                    defaultValue={team.losses}
-                    mb={2}
-                    min="0"
-                    id="loss-input"
-                    type="number"
-                    onChange={e => this.handleChange(e, team.id)}
-                  />
-                  <Button
-                    size="small"
-                    color="blue"
-                    onClick={() => this.updateTeamWinsLosses(team.id)}
-                  >
-                    Update W/L
-                  </Button>
-                </Box>
+                {team.editRecord ? (
+                  <Box p={3}>
+                    <FormLabel htmlFor="win-input">Wins</FormLabel>
+                    <TextInput
+                      defaultValue={team.wins}
+                      mb={2}
+                      min="0"
+                      className="win-input"
+                      type="number"
+                      onChange={e => this.handleChange(e, team.id)}
+                    />
+                    <FormLabel htmlFor="loss-input">Losses</FormLabel>
+                    <TextInput
+                      defaultValue={team.losses}
+                      mb={2}
+                      min="0"
+                      id="loss-input"
+                      type="number"
+                      onChange={e => this.handleChange(e, team.id)}
+                    />
+                    <Button
+                      size="small"
+                      color="blue"
+                      onClick={() => this.updateTeamWinsLosses(team.id)}
+                    >
+                      Update
+                    </Button>
+                  </Box>
+                ) : (
+                  <p>
+                    Record (W-L): {team.wins} - {team.losses}{' '}
+                    <i
+                      className="fas fa-edit"
+                      style={{ color: 'red', cursor: 'pointer' }}
+                      onClick={() => this.editRecord(team)}
+                    />
+                  </p>
+                )}
               </Heading>
             </Card.Header>
             {team.showPlayers ? (
@@ -199,18 +310,41 @@ class App extends Component {
                         </ListItem.Heading>
                         <Box>
                           <ListItem.Info>
-                            Starter? {p.starter ? 'Yes' : 'No'}
-                          </ListItem.Info>
-                          <ListItem.Info>
-                            Jersey #:{' '}
-                            <TextInput
-                              defaultValue={p.jersey_number}
-                              min="0"
-                              className="loss-input"
-                              type="number"
-                              onChange={e => this.updateJerseyNumber(e, p)}
+                            Starter:{' '}
+                            <input
+                              type="checkbox"
+                              defaultChecked={p.starter}
+                              onChange={e => {
+                                this.updateStartingPlayer(e, p)
+                              }}
                             />
                           </ListItem.Info>
+
+                          {p.editJersey ? (
+                            <ListItem.Info>
+                              <FormLabel htmlFor="jersey-input">
+                                Jersey #
+                              </FormLabel>
+                              <TextInput
+                                defaultValue={p.jersey_number}
+                                min="0"
+                                className="jersey-input"
+                                type="number"
+                                onChange={e => this.updateJerseyNumber(e, p)}
+                                onKeyPress={e => this.closeEditJersey(e, p)}
+                              />
+                            </ListItem.Info>
+                          ) : (
+                            <ListItem.Info>
+                              Jersey #: {` ${p.jersey_number} `}
+                              <i
+                                className="fas fa-edit"
+                                style={{ color: 'red', cursor: 'pointer' }}
+                                onClick={() => this.editJersey(p)}
+                              />
+                            </ListItem.Info>
+                          )}
+
                           <ListItem.Info>Height: {p.height}</ListItem.Info>
                           <ListItem.Info>Weight: {p.weight}</ListItem.Info>
                           <ListItem.Info>Position: {p.position}</ListItem.Info>
