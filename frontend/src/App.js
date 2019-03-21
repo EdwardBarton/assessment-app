@@ -20,10 +20,11 @@ class App extends Component {
     this.state = {
       conference: null,
       teams: [],
+      addTeam: false,
     }
   }
 
-  async fetchData() {
+  fetchData = async () => {
     const response = await axios.get(API, { mode: 'no-cors' })
     const data = response.data
     const updatedTeams = data.teams.map(t => {
@@ -41,7 +42,7 @@ class App extends Component {
   // *************************** UPDATE TEAM FUNCTIONS *************************** //
 
   // Fetch team players and toggle visibility when "Players" button is clicked in Card.Header
-  async fetchTeamPlayers(team) {
+  fetchTeamPlayers = async team => {
     const { teams } = this.state
 
     // Only fetch players on initial click
@@ -77,7 +78,7 @@ class App extends Component {
   }
 
   // Update database upon clicking "Update W/L" button
-  async updateTeamWinsLosses(teamID) {
+  updateTeamWinsLosses = async teamID => {
     const { teams } = this.state
     const putApiRoute = `${API}/conferences/1/teams/${teamID}`
     const teamToUpdate = { ...teams[teamID - 1] }
@@ -102,7 +103,7 @@ class App extends Component {
   }
 
   // Update app state as Win/Loss input values change
-  handleChange(e, teamID) {
+  handleChange = (e, teamID) => {
     const { teams } = this.state
 
     // Store new winning/losing value
@@ -124,6 +125,41 @@ class App extends Component {
     } else {
       return
     }
+  }
+
+  // Add a team
+  postTeam = async () => {
+    const postApiRoute = `${API}/conferences/1/teams`
+    // Store input values
+    const teamName = document.querySelector('.team-name-input').value
+    const teamMascot = document.querySelector('.team-mascot-input').value
+    const teamCoach = document.querySelector('.team-coach-input').value
+    const teamWins = Number(document.querySelector('.team-wins-input').value)
+    const teamLosses = Number(
+      document.querySelector('.team-losses-input').value,
+    )
+
+    // Check for empty inputs
+    if (!teamName || !teamMascot || !teamCoach) {
+      return
+    }
+
+    // POST new team
+    const newTeam = {
+      name: teamName,
+      mascot: teamMascot,
+      coach: teamCoach,
+      wins: teamWins,
+      losses: teamLosses,
+      conference_id: 1,
+    }
+    const response = await axios.post(postApiRoute, newTeam)
+
+    // Update app state immutably w/ team data from POST response
+    this.setState({
+      addTeam: false,
+      teams: this.state.teams.concat([response.data]),
+    })
   }
 
   // *************************** PLAYER UPDATE FUNCTIONS *************************** //
@@ -230,18 +266,53 @@ class App extends Component {
   // *************************** RENDER *************************** //
 
   render() {
-    const { conference } = this.state
-    const { teams } = this.state
+    const { conference, teams, addTeam } = this.state
 
     if (conference === null) {
       return <h3>loading</h3>
+    }
+
+    if (addTeam) {
+      return (
+        <form style={{ padding: '50px' }}>
+          <FormLabel htmlFor="team-name-input">Team Name</FormLabel>
+          <TextInput mb={2} className="team-name-input" type="text" />
+          <FormLabel htmlFor="team-mascot-input">Mascot</FormLabel>
+          <TextInput mb={2} className="team-mascot-input" type="text" />
+          <FormLabel htmlFor="team-coach-input">Coach</FormLabel>
+          <TextInput mb={2} className="team-coach-input" type="text" />
+          <FormLabel htmlFor="team-wins-input">Wins</FormLabel>
+          <TextInput
+            mb={2}
+            className="team-wins-input"
+            type="number"
+            defaultValue="0"
+            min="0"
+          />
+          <FormLabel htmlFor="team-losses-input">Losses</FormLabel>
+          <TextInput
+            mb={2}
+            className="team-losses-input"
+            type="number"
+            defaultValue="0"
+            min="0"
+          />
+          <Button mx={2} size="small" color="blue" onClick={this.postTeam}>
+            Submit
+          </Button>
+        </form>
+      )
     }
 
     return (
       <Box className="App" mx={12} my={5}>
         <Heading mb={5}>
           {conference.short_name} ({conference.name})
-          <Button ml={5} color="blue">
+          <Button
+            ml={5}
+            color="blue"
+            onClick={() => this.setState({ addTeam: true })}
+          >
             Add Team
           </Button>
         </Heading>
@@ -252,7 +323,7 @@ class App extends Component {
               <Heading p={3}>
                 {team.name} {team.mascot}: {team.coach}
                 <Button
-                  mx={2}
+                  ml={3}
                   size="small"
                   color="blue"
                   onClick={() => this.fetchTeamPlayers(team)}
