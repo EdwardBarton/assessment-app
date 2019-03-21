@@ -232,9 +232,13 @@ class App extends Component {
   // *************************** TOGGLE TEXT INPUTS *************************** //
 
   // Shows edit record form for a given team
-  editRecord = team => {
+  editRecord = (e, team) => {
     const teamsCopy = [...this.state.teams]
-    teamsCopy[team.id - 1].editRecord = true
+    teamsCopy[team.id - 1].editRecord = e.target.classList.contains(
+      'edit-record-btn',
+    )
+      ? true
+      : false
     this.setState({ teams: teamsCopy })
   }
 
@@ -249,11 +253,10 @@ class App extends Component {
     this.setState({ teams: teamsCopy })
   }
 
-  // Close edit jersey input for a given player on "Enter"
+  // Close edit jersey input for a given player on "Enter" or "Escape"
   closeEditJersey = (e, player) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' || e.key === 'Escape') {
       const teamsCopy = [...this.state.teams]
-
       teamsCopy[player.team_id - 1].players.find(
         p => p.id === player.id,
       ).editJersey = false
@@ -298,8 +301,11 @@ class App extends Component {
             defaultValue="0"
             min="0"
           />
-          <Button mx={2} size="small" color="blue" onClick={this.postTeam}>
+          <Button mr={2} color="blue" onClick={this.postTeam}>
             Submit
+          </Button>
+          <Button color="red" onClick={() => this.setState({ addTeam: false })}>
+            Cancel
           </Button>
         </form>
       )
@@ -354,19 +360,28 @@ class App extends Component {
                     />
                     <Button
                       size="small"
+                      mr={2}
                       color="blue"
                       onClick={() => this.updateTeamWinsLosses(team.id)}
                     >
                       Update
+                    </Button>
+                    <Button
+                      size="small"
+                      color="red"
+                      className="cancel-record-update-btn"
+                      onClick={e => this.editRecord(e, team)}
+                    >
+                      Cancel
                     </Button>
                   </Box>
                 ) : (
                   <p>
                     Record (W-L): {team.wins} - {team.losses}{' '}
                     <i
-                      className="fas fa-edit"
+                      className="fas fa-edit edit-record-btn"
                       style={{ color: 'red', cursor: 'pointer' }}
-                      onClick={() => this.editRecord(team)}
+                      onClick={e => this.editRecord(e, team)}
                     />
                   </p>
                 )}
@@ -376,59 +391,65 @@ class App extends Component {
               <Card.Content>
                 <List>
                   <Flex className="players" justifyContent="space-around">
-                    {team.players.map(p => (
-                      <ListItem key={p.id} style={{ border: 'none' }}>
-                        <ListItem.Content>
-                          <ListItem.Heading style={{ textAlign: 'center' }}>
-                            {p.name}
-                          </ListItem.Heading>
-                          <Box>
-                            <ListItem.Info>
-                              Starter:{' '}
-                              <input
-                                type="checkbox"
-                                defaultChecked={p.starter}
-                                onChange={e => {
-                                  this.updateStartingPlayer(e, p)
-                                }}
-                              />
-                            </ListItem.Info>
-
-                            {p.editJersey ? (
+                    {team.players.length ? (
+                      team.players.map(p => (
+                        <ListItem key={p.id} style={{ border: 'none' }}>
+                          <ListItem.Content>
+                            <ListItem.Heading style={{ textAlign: 'center' }}>
+                              {p.name}
+                            </ListItem.Heading>
+                            <Box>
                               <ListItem.Info>
-                                <FormLabel htmlFor="jersey-input">
-                                  Jersey #
-                                </FormLabel>
-                                <TextInput
-                                  defaultValue={p.jersey_number}
-                                  min="0"
-                                  className="jersey-input"
-                                  type="number"
-                                  onChange={e => this.updateJerseyNumber(e, p)}
-                                  onKeyPress={e => this.closeEditJersey(e, p)}
-                                  autoFocus
+                                Starter:{' '}
+                                <input
+                                  type="checkbox"
+                                  defaultChecked={p.starter}
+                                  onChange={e => {
+                                    this.updateStartingPlayer(e, p)
+                                  }}
                                 />
                               </ListItem.Info>
-                            ) : (
-                              <ListItem.Info>
-                                Jersey #: {` ${p.jersey_number} `}
-                                <i
-                                  className="fas fa-edit"
-                                  style={{ color: 'red', cursor: 'pointer' }}
-                                  onClick={() => this.editJersey(p)}
-                                />
-                              </ListItem.Info>
-                            )}
 
-                            <ListItem.Info>Height: {p.height}</ListItem.Info>
-                            <ListItem.Info>Weight: {p.weight}</ListItem.Info>
-                            <ListItem.Info>
-                              Position: {p.position}
-                            </ListItem.Info>
-                          </Box>
-                        </ListItem.Content>
-                      </ListItem>
-                    ))}
+                              {p.editJersey ? (
+                                <ListItem.Info>
+                                  <FormLabel htmlFor="jersey-input">
+                                    Jersey #
+                                  </FormLabel>
+                                  <TextInput
+                                    defaultValue={p.jersey_number}
+                                    min="0"
+                                    className="jersey-input"
+                                    type="number"
+                                    onChange={e =>
+                                      this.updateJerseyNumber(e, p)
+                                    }
+                                    onKeyUp={e => this.closeEditJersey(e, p)}
+                                    autoFocus
+                                  />
+                                </ListItem.Info>
+                              ) : (
+                                <ListItem.Info>
+                                  Jersey #: {` ${p.jersey_number} `}
+                                  <i
+                                    className="fas fa-edit"
+                                    style={{ color: 'red', cursor: 'pointer' }}
+                                    onClick={() => this.editJersey(p)}
+                                  />
+                                </ListItem.Info>
+                              )}
+
+                              <ListItem.Info>Height: {p.height}</ListItem.Info>
+                              <ListItem.Info>Weight: {p.weight}</ListItem.Info>
+                              <ListItem.Info>
+                                Position: {p.position}
+                              </ListItem.Info>
+                            </Box>
+                          </ListItem.Content>
+                        </ListItem>
+                      ))
+                    ) : (
+                      <p>No players found</p>
+                    )}
                   </Flex>
                 </List>
               </Card.Content>
