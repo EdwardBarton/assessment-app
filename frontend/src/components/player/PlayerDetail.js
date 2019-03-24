@@ -5,7 +5,7 @@ import StartingPlayer from './StartingPlayer'
 
 const PlayerDetail = ({ player, teams, updateAppState }) => {
   // Shows edit jersey input for a given player
-  const editJersey = player => {
+  const editJersey = () => {
     const teamsCopy = [...teams]
 
     teamsCopy[player.team_id - 1].players.find(
@@ -41,7 +41,7 @@ const PlayerDetail = ({ player, teams, updateAppState }) => {
               <i
                 className="fas fa-edit"
                 style={{ color: 'red', cursor: 'pointer' }}
-                onClick={() => editJersey(player)}
+                onClick={editJersey}
               />
             </ListItem.Info>
           )}

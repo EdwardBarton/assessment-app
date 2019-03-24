@@ -41,7 +41,7 @@ class EditRecordForm extends Component {
 
   // Render
   render() {
-    const { team, toggleEditRecord } = this.props
+    const { toggleEditRecord } = this.props
     const { wins, losses } = this.state
 
     return (
@@ -77,7 +77,7 @@ class EditRecordForm extends Component {
           size="small"
           color="red"
           className="cancel-record-update-btn"
-          onClick={e => toggleEditRecord(e, team.id)}
+          onClick={e => toggleEditRecord(e)}
         >
           Cancel
         </Button>

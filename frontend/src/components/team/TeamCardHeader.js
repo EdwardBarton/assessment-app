@@ -7,7 +7,7 @@ const API = 'http://localhost:5000'
 
 const TeamCardHeader = ({ team, teams, updateAppState }) => {
   // Fetch team players and toggle visibility when "Players" button is clicked in Card.Header
-  const fetchTeamPlayers = async team => {
+  const fetchTeamPlayers = async () => {
     // Only fetch players on initial click
     if (!team.players) {
       const getPlayersApiRoute = `${API}/conferences/1/teams/${team.id}/players`
@@ -41,13 +41,11 @@ const TeamCardHeader = ({ team, teams, updateAppState }) => {
   }
 
   // Shows edit record form for a given team
-  const toggleEditRecord = (e, teamID) => {
+  const toggleEditRecord = e => {
     const teamsCopy = [...teams]
-    teamsCopy[teamID - 1].editRecord = e.target.classList.contains(
+    teamsCopy[team.id - 1].editRecord = e.target.classList.contains(
       'edit-record-btn',
     )
-      ? true
-      : false
     updateAppState({ teams: teamsCopy })
   }
 
@@ -56,12 +54,7 @@ const TeamCardHeader = ({ team, teams, updateAppState }) => {
     <Card.Header>
       <Heading p={3}>
         {team.name} {team.mascot}: {team.coach}
-        <Button
-          ml={3}
-          size="small"
-          color="blue"
-          onClick={() => fetchTeamPlayers(team)}
-        >
+        <Button ml={3} size="small" color="blue" onClick={fetchTeamPlayers}>
           {team.showPlayers ? 'Hide' : 'Show'} Players
         </Button>
         {team.editRecord ? (
@@ -77,7 +70,7 @@ const TeamCardHeader = ({ team, teams, updateAppState }) => {
             <i
               className="fas fa-edit edit-record-btn"
               style={{ color: 'red', cursor: 'pointer' }}
-              onClick={e => toggleEditRecord(e, team.id)}
+              onClick={e => toggleEditRecord(e)}
             />
           </p>
         )}
